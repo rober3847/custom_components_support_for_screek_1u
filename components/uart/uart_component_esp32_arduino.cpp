@@ -188,7 +188,8 @@ void ESP32ArduinoUARTComponent::check_logger_conflict() {
     return;
   }
 
-  if (this->hw_serial_ == logger::global_logger->get_hw_serial()) {
+  // if (this->hw_serial_ == logger::global_logger->get_hw_serial()) {
+  if (logger::global_logger != nullptr && logger::global_logger->get_uart() == this) {
     ESP_LOGW(TAG, "  You're using the same serial port for logging and the UART component. Please "
                   "disable logging over the serial port by setting logger->baud_rate to 0.");
   }
