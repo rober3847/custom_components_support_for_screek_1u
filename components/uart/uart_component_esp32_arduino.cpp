@@ -182,6 +182,39 @@ void ESP32ArduinoUARTComponent::flush() {
   this->hw_serial_->flush();
 }
 
+void ESP32ArduinoUARTComponent::check_logger_conflict() {
+#ifdef USE_LOGGER
+  if (this->hw_serial_ == nullptr || logger::global_logger == nullptr ||
+      logger::global_logger->get_baud_rate() == 0) {
+    return;
+  }
+
+  // Determine which UART the logger is using
+  auto log_uart = logger::global_logger->get_uart();
+  HardwareSerial *logger_serial = nullptr;
+
+  // Safely map UART selection to HardwareSerial, handling USBSerial vs Serial
+  #if defined(USBSerial)
+    auto *serial0 = &USBSerial;
+  #else
+    static HardwareSerial serial0(0);
+    auto *serial0 = &serial0;
+  #endif
+
+  if (log_uart == logger::UART_SELECTION_UART0) {
+    logger_serial = serial0;
+  } else if (log_uart == logger::UART_SELECTION_UART1) {
+    logger_serial = &Serial1;
+  } else if (log_uart == logger::UART_SELECTION_UART2) {
+    logger_serial = &Serial2;
+  }
+
+  if (logger_serial != nullptr && this->hw_serial_ == logger_serial) {
+    ESP_LOGW(TAG, "You're using the same serial port for logging and the UART component. "
+                  "Disable serial logging by setting logger -> baud_rate: 0");
+  }
+#endif
+}
 // void ESP32ArduinoUARTComponent::check_logger_conflict() {
 // #ifdef USE_LOGGER
 //   if (this->hw_serial_ == nullptr || logger::global_logger->get_baud_rate() == 0) {
